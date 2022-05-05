@@ -67,7 +67,7 @@ class PPO:
             for i in range(self.update_iteration):
                 v , iter_log_prob = self.critic_evaluate(b_obs, b_acts)
 
-                ratio = torch.exp(b_log_probs - iter_log_prob)
+                ratio = torch.exp(iter_log_prob - b_log_probs)
                 surr1 = ratio * A
                 surr2 = torch.clamp(ratio, 1 - self.clip, 1 + self.clip) * A
 
@@ -77,10 +77,10 @@ class PPO:
                 actor_loss.backward(retain_graph=True)
                 self.actor_optim.step()
 
-                critic_loss = nn.MSELoss()(V, b_rtgs)
+                critic_loss = nn.MSELoss()(v, b_rtgs)
                 # Calculate gradients and perform backward propagation for critic network    
                 self.critic_optim.zero_grad()    
-                critic_loss.backward(retain_graph=True)    
+                critic_loss.backward()    
                 self.critic_optim.step()
 
 
