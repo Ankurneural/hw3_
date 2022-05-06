@@ -48,8 +48,8 @@ class PPO:
         self.cov_var = torch.full(size=(self.action_dim,), fill_value=0.5)
         self.cov_mat = torch.diag(self.cov_var)
 
-        self.gamma = 0.9
-        self.update_iteration = 5
+        self.gamma = 0.95
+        self.update_iteration = 10
         self.clip = 0.2
 
 
@@ -60,7 +60,7 @@ class PPO:
         actor_loss_l , batch_mean_r = list(), list()
 
         while t_count <= timestamps:
-            b_obs, b_acts, b_log_probs, b_lens, b_rtgs, b_rews = self.batch_simulator()
+            b_obs, b_acts, b_log_probs, b_lens, b_rtgs, b_rews = self.rollout() 
 
             V, _ = self.critic_evaluate(b_obs, b_acts)
             A = b_rtgs - V.detach()
@@ -184,10 +184,92 @@ class PPO:
         return action.detach().numpy(), log_prob.detach()
 
 
+    def rollout(self):
+        """
+            Too many transformers references, I'm sorry. This is where we collect the batch of data
+            from simulation. Since this is an on-policy algorithm, we'll need to collect a fresh batch
+            of data each time we iterate the actor/critic networks.
+
+            Parameters:
+                None
+
+            Return:
+                batch_obs - the observations collected this batch. Shape: (number of timesteps, dimension of observation)
+                batch_acts - the actions collected this batch. Shape: (number of timesteps, dimension of action)
+                batch_log_probs - the log probabilities of each action taken this batch. Shape: (number of timesteps)
+                batch_rtgs - the Rewards-To-Go of each timestep in this batch. Shape: (number of timesteps)
+                batch_lens - the lengths of each episode this batch. Shape: (number of episodes)
+        """
+        # Batch data. For more details, check function header.
+        batch_obs = []
+        batch_acts = []
+        batch_log_probs = []
+        batch_rews = []
+        batch_rtgs = []
+        batch_lens = []
+
+        # Episodic data. Keeps track of rewards per episode, will get cleared
+        # upon each new episode
+        ep_rews = []
+
+        t = 0 # Keeps track of how many timesteps we've run so far this batch
+
+        # Keep simulating until we've run more than or equal to specified timesteps per batch
+        while t < 4800:
+            ep_rews = [] # rewards collected per episode
+
+            # Reset the environment. sNote that obs is short for observation. 
+            obs = self.env.reset()
+            done = False
+
+            # Run an episode for a maximum of max_timesteps_per_episode timesteps
+            for ep_t in range(1800):
+                # If render is specified, render the environment
+                # if self.render and (self.logger['i_so_far'] % self.render_every_i == 0) and len(batch_lens) == 0:
+                #     self.env.render()
+
+                t += 1 # Increment timesteps ran this batch so far
+
+                # Track observations in this batch
+                batch_obs.append(obs)
+
+                # Calculate action and make a step in the env. 
+                # Note that rew is short for reward.
+                action, log_prob = self.action_sampler(obs)
+                obs, rew, done, _ = self.env.step(action)
+
+                # Track recent reward, action, and action log probability
+                ep_rews.append(rew)
+                batch_acts.append(action)
+                batch_log_probs.append(log_prob)
+
+                # If the environment tells us the episode is terminated, break
+                if done:
+                    break
+
+            # Track episodic lengths and rewards
+            batch_lens.append(ep_t + 1)
+            batch_rews.append(ep_rews)
+
+        # Reshape data as tensors in the shape specified in function description, before returning
+        batch_obs = torch.tensor(batch_obs, dtype=torch.float)
+        batch_acts = torch.tensor(batch_acts, dtype=torch.float)
+        batch_log_probs = torch.tensor(batch_log_probs, dtype=torch.float)
+        batch_rtgs = self.rtgs(batch_rews)                                                              # ALG STEP 4
+
+        # Log the episodic returns and episodic lengths in this batch.
+        # self.logger['batch_rews'] = batch_rews
+        # self.logger['batch_lens'] = batch_lens
+
+        print( np.mean([np.sum(ep_rews) for ep_rews in batch_rews]))
+
+        return batch_obs, batch_acts, batch_log_probs, batch_lens, batch_rtgs, batch_rews
+
+
 if __name__ == '__main__':
     e1 = gym.make('Pendulum-v1')
     p1 = PPO(e1, Feedforward)
-    bm, am = p1.train(500000)
+    bm, am = p1.train(5000000)
 
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12,12))
     ax_right = ax.twinx()
