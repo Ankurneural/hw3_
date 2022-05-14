@@ -7,6 +7,7 @@
 from tkinter import Variable
 import gym
 import time
+import a3_gym_env
 
 import numpy as np
 import time
@@ -471,7 +472,7 @@ class VPG():
 
 
 if __name__ == "__main__":
-    env = gym.make('Pendulum-v1')
+    env = gym.make('Pendulum-v1-custom')
     model = PPO(Feedforward, env)
     actor_loss, c_loss, avg_return = model.train(45000)
 
