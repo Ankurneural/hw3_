@@ -472,17 +472,18 @@ class VPG():
 
 if __name__ == "__main__":
     env = gym.make('Pendulum-v1')
-    # model = PPO(Feedforward, env)
-    # actor_loss, c_loss, avg_return = model.train(450000)
+    model = PPO(Feedforward, env)
+    actor_loss, c_loss, avg_return = model.train(45000)
 
-    model = VPG(Feedforward, env)
-    actor_loss, avg_return = model.train(450000)
+    # model = VPG(Feedforward, env)
+    # actor_loss, avg_return = model.train(450000)
 
     fig, ax = plt.subplots(nrows=1, ncols=1, figsize=(12,12))
     ax_right = ax.twinx()
     ax.plot(avg_return, color='black')
     ax_right.plot(actor_loss, color='red')
-    # ax.plot(c_loss, color='red')
+    ax.plot(c_loss, color='red')
+
     plt.show()
 
 
