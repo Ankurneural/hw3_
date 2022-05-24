@@ -15,3 +15,15 @@ Make changes in the script where ever you want to gym.make the cutom env:
 2. gym.make('Pendulum-v1-custom')
 
 
+The file for :
+
+PPO+without clip: PPO_Noclip.py 
+PPO implementation : PPO_2.py
+Vanilla policy:VPG.py 
+All the grpahs and PPO implementation can be viewed in test.ipynb file.
+
+How to run :
+python <file name>
+
+  
+
