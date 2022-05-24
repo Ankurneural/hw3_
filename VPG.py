@@ -6,6 +6,7 @@ from torch.distributions import Categorical
 import numpy as np
 import gym
 from collections import deque
+import a3_gym_env
 
 # define policy network
 class Feedforward(nn.Module):
@@ -30,7 +31,7 @@ class Feedforward(nn.Module):
 
 
 # create environment
-env = gym.make("Pendulum-v1")
+env = gym.make("Pendulum-v1-custom")
 # instantiate the policy
 policy = Feedforward( env.observation_space.shape[0], env.action_space.shape[0])
 # create an optimizer
